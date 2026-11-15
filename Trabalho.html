@@ -1,0 +1,1195 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sistema de Monitoramento e Controle de Temperatura</title>
+
+    <!-- Bibliotecas utilizadas na interface -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Fontes para textos e valores do circuito -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0d1118;
+            --panel: #151c27;
+            --panel-secondary: #101722;
+            --border: #293443;
+            --text: #e2e8f0;
+            --muted: #9aa7b8;
+            --green: #5dbb91;
+            --red: #e77b86;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .panel-heading {
+            color: #f1f5f9;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        /* Cartões das entradas */
+        .input-card {
+            padding: 14px;
+            background: var(--panel-secondary);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+        }
+
+        .symbol {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            border-radius: 6px;
+            background: #263345;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Controles liga/desliga */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+        }
+
+        .switch-track {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            background: #465367;
+            border-radius: 20px;
+            transition: background .2s;
+        }
+
+        .switch-track::before {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform .2s;
+        }
+
+        .switch input:checked + .switch-track {
+            background: #398b6a;
+        }
+
+        .switch input:checked + .switch-track::before {
+            transform: translateX(20px);
+        }
+
+        .switch input:focus-visible + .switch-track {
+            outline: 2px solid #8bd4b1;
+            outline-offset: 3px;
+        }
+
+        /* Indicadores das saídas */
+        .output-card {
+            padding: 14px;
+            background: var(--panel-secondary);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            transition: border-color .2s, background .2s;
+        }
+
+        .output-card.active-r {
+            background: #14251f;
+            border-color: #397c61;
+        }
+
+        .output-card.active-a {
+            background: #291b21;
+            border-color: #98535d;
+        }
+
+        .led {
+            width: 11px;
+            height: 11px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: #596579;
+        }
+
+        .led.green {
+            background: var(--green);
+        }
+
+        .led.red {
+            background: var(--red);
+        }
+
+        .status {
+            padding: 5px 9px;
+            border-radius: 6px;
+            background: #263345;
+            color: #cbd5e1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status.green {
+            background: #1d3b30;
+            color: #a6e4c5;
+        }
+
+        .status.red {
+            background: #44272e;
+            color: #ffc0c6;
+        }
+
+        /* Expressões booleanas */
+        .formula {
+            padding: 12px;
+            background: var(--panel-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .green-text {
+            color: #8bd4b1 !important;
+        }
+
+        .red-text {
+            color: #f2a2aa !important;
+        }
+
+        /* Botões de teste */
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 11px;
+            border: 1px solid #3a485a;
+            border-radius: 7px;
+            background: #202c3b;
+            color: #d5deea;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+        .action-button:hover {
+            background: #2b3a4d;
+        }
+
+        .action-button:focus-visible {
+            outline: 2px solid #8bd4b1;
+            outline-offset: 2px;
+        }
+
+        /* Área do desenho lógico */
+        .diagram-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: #0b111a;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 10px;
+        }
+
+        #circuitCanvas {
+            display: block;
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+            margin: 0 auto;
+        }
+
+        /* Tabela-verdade */
+        .truth-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .truth-table th {
+            padding: 13px 10px;
+            background: #101722;
+            color: #aebbd0;
+            font-size: 11px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .truth-table td {
+            padding: 11px 10px;
+            border-bottom: 1px solid #293443;
+            color: #cbd5e1;
+        }
+
+        .truth-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .truth-table tr.selected {
+            background: #1b3029;
+            outline: 1px solid #397c61;
+        }
+
+        .truth-table tr.selected td {
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Texto que explica a combinação atual */
+        .explanation {
+            padding: 15px;
+            background: #101722;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+        }
+
+        @media (max-width: 640px) {
+            .truth-table {
+                font-size: 11px;
+            }
+
+            .truth-table th,
+            .truth-table td {
+                padding: 10px 8px;
+            }
+
+            .panel {
+                border-radius: 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Cabeçalho do projeto -->
+    <header class="border-b border-slate-700 bg-[#111823]">
+        <div class="max-w-7xl mx-auto px-5 py-5">
+
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="cpu" class="w-5 h-5 text-emerald-400"></i>
+
+                        <span class="text-xs font-medium tracking-wide text-emerald-300">
+                            PROJETO ACADÊMICO – SISTEMAS DIGITAIS
+                        </span>
+                    </div>
+
+                    <h1 class="text-xl md:text-2xl font-bold text-white">
+                        Sistema de Monitoramento e Controle de Temperatura
+                    </h1>
+
+                    <p class="text-sm muted mt-1">
+                        Simulação do funcionamento do circuito lógico digital
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs text-slate-400 border border-slate-700 rounded-lg px-3 py-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Simulação disponível
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-7 space-y-6">
+
+        <!-- Apresentação -->
+        <section>
+            <h2 class="text-lg font-semibold text-white">
+                Painel de simulação
+            </h2>
+
+            <p class="text-sm muted mt-2 max-w-3xl leading-relaxed">
+                Nesta página é possível alterar as três entradas do circuito e observar
+                o resultado. As saídas, o desenho lógico e a tabela-verdade acompanham
+                automaticamente cada mudança.
+            </p>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Coluna das entradas e saídas -->
+            <div class="lg:col-span-4 space-y-5">
+
+                <!-- Entradas -->
+                <section class="panel p-5">
+
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="panel-heading">Entradas</h3>
+                        <span class="text-xs muted">M, T e P</span>
+                    </div>
+
+                    <div class="space-y-3">
+
+                        <!-- Manutenção -->
+                        <div class="input-card">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="symbol">M</span>
+
+                                        <span class="text-sm font-semibold">
+                                            Manutenção
+                                        </span>
+                                    </div>
+
+                                    <p id="label-m" class="text-xs muted mt-2 ml-9">
+                                        Desativada (0)
+                                    </p>
+                                </div>
+
+                                <label class="switch" aria-label="Ativar manutenção">
+                                    <input type="checkbox" id="toggle-m">
+                                    <span class="switch-track"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Temperatura -->
+                        <div class="input-card">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="symbol">T</span>
+
+                                        <span class="text-sm font-semibold">
+                                            Temperatura
+                                        </span>
+                                    </div>
+
+                                    <p id="label-t" class="text-xs muted mt-2 ml-9">
+                                        Normal (0)
+                                    </p>
+                                </div>
+
+                                <label class="switch" aria-label="Alterar temperatura">
+                                    <input type="checkbox" id="toggle-t">
+                                    <span class="switch-track"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Porta -->
+                        <div class="input-card">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="symbol">P</span>
+
+                                        <span class="text-sm font-semibold">
+                                            Porta
+                                        </span>
+                                    </div>
+
+                                    <p id="label-p" class="text-xs muted mt-2 ml-9">
+                                        Fechada (0)
+                                    </p>
+                                </div>
+
+                                <label class="switch" aria-label="Abrir ou fechar porta">
+                                    <input type="checkbox" id="toggle-p">
+                                    <span class="switch-track"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Atalhos para combinações de teste -->
+                    <div class="border-t border-slate-700 mt-5 pt-4">
+                        <p class="text-xs font-semibold muted mb-3">
+                            Testar situações
+                        </p>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button class="action-button" data-scenario="0,0,0">
+                                Normal
+                            </button>
+
+                            <button class="action-button" data-scenario="0,1,0">
+                                Temperatura alta
+                            </button>
+
+                            <button class="action-button" data-scenario="0,1,1">
+                                Porta aberta
+                            </button>
+
+                            <button class="action-button" data-scenario="1,1,0">
+                                Manutenção
+                            </button>
+                        </div>
+
+                        <button id="reset-button" class="text-xs muted hover:text-white mt-4 flex items-center gap-2">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            Voltar ao início
+                        </button>
+                    </div>
+
+                </section>
+
+                <!-- Saídas -->
+                <section class="panel p-5">
+
+                    <h3 class="panel-heading mb-4">Saídas</h3>
+
+                    <div class="space-y-3">
+
+                        <!-- Refrigeração -->
+                        <div id="card-r" class="output-card">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span id="led-r" class="led"></span>
+
+                                    <div>
+                                        <p class="text-xs muted">Saída R</p>
+
+                                        <h4 class="text-sm font-semibold mt-1">
+                                            ❄️ Refrigeração
+                                        </h4>
+                                    </div>
+                                </div>
+
+                                <span id="badge-r" class="status">
+                                    DESLIGADO (0)
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Alarme -->
+                        <div id="card-a" class="output-card">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span id="led-a" class="led"></span>
+
+                                    <div>
+                                        <p class="text-xs muted">Saída A</p>
+
+                                        <h4 class="text-sm font-semibold mt-1">
+                                            🚨 Alarme
+                                        </h4>
+                                    </div>
+                                </div>
+
+                                <span id="badge-a" class="status">
+                                    DESLIGADO (0)
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Expressões do circuito -->
+                    <div class="border-t border-slate-700 mt-5 pt-4">
+                        <p class="text-xs font-semibold muted mb-3">
+                            Expressões utilizadas
+                        </p>
+
+                        <div class="formula flex justify-between items-center gap-2">
+                            <span class="text-xs muted">Refrigeração</span>
+
+                            <span class="mono text-sm green-text font-semibold">
+                                R = T · M̅
+                            </span>
+                        </div>
+
+                        <div class="formula flex justify-between items-center mt-2 gap-2">
+                            <span class="text-xs muted">Alarme</span>
+
+                            <span class="mono text-sm red-text font-semibold">
+                                A = T · P
+                            </span>
+                        </div>
+                    </div>
+
+                </section>
+
+            </div>
+
+            <!-- Coluna do circuito e da tabela -->
+            <div class="lg:col-span-8 space-y-5">
+
+                <!-- Circuito lógico -->
+                <section class="panel p-5">
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="panel-heading">Circuito lógico</h3>
+
+                            <p class="text-xs muted mt-1">
+                                Representação das conexões e portas utilizadas
+                            </p>
+                        </div>
+
+                        <span class="text-xs muted">
+                            1 NOT e 2 AND
+                        </span>
+                    </div>
+
+                    <div class="diagram-wrapper">
+                        <canvas
+                            id="circuitCanvas"
+                            width="900"
+                            height="420"
+                            aria-label="Representação do circuito lógico com uma porta NOT e duas portas AND">
+                        </canvas>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4 mt-3 text-xs muted">
+                        <span class="flex items-center gap-2">
+                            <span class="w-3 h-1 rounded bg-emerald-400"></span>
+                            Estado 1
+                        </span>
+
+                        <span class="flex items-center gap-2">
+                            <span class="w-3 h-1 rounded bg-slate-600"></span>
+                            Estado 0
+                        </span>
+                    </div>
+
+                    <!-- Explicação atualizada conforme as entradas -->
+                    <div class="explanation mt-5">
+                        <h4 class="text-sm font-semibold text-white">
+                            O que está acontecendo?
+                        </h4>
+
+                        <p
+                            id="explanation-text"
+                            class="text-sm muted mt-2 leading-relaxed"
+                            aria-live="polite">
+                            Aguardando atualização...
+                        </p>
+                    </div>
+
+                </section>
+
+                <!-- Tabela-verdade -->
+                <section class="panel p-5">
+
+                    <div class="mb-4">
+                        <h3 class="panel-heading">Tabela-verdade</h3>
+
+                        <p class="text-xs muted mt-1">
+                            A linha destacada corresponde aos valores selecionados nas entradas.
+                        </p>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-lg border border-slate-700">
+                        <table class="truth-table">
+                            <thead>
+                                <tr>
+                                    <th>M</th>
+                                    <th>T</th>
+                                    <th>P</th>
+                                    <th>M̅</th>
+                                    <th class="green-text">R</th>
+                                    <th class="red-text">A</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="truth-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4 mt-3 text-xs muted">
+                        <span>R = Refrigeração</span>
+                        <span>A = Alarme</span>
+                    </div>
+
+                </section>
+
+                <!-- Resumo das regras -->
+                <section class="panel p-5">
+
+                    <h3 class="panel-heading mb-4">
+                        Como o circuito funciona
+                    </h3>
+
+                    <div class="space-y-4">
+
+                        <div>
+                            <p class="text-sm font-semibold green-text mb-1">
+                                ❄️ Refrigeração
+                            </p>
+
+                            <p class="text-sm muted leading-relaxed">
+                                A refrigeração liga quando a temperatura está alta e a manutenção
+                                está desativada. Se a manutenção for ativada, esse acionamento
+                                automático é bloqueado.
+                            </p>
+                        </div>
+
+                        <div class="border-t border-slate-700 pt-4">
+                            <p class="text-sm font-semibold red-text mb-1">
+                                🚨 Alarme
+                            </p>
+
+                            <p class="text-sm muted leading-relaxed">
+                                O alarme liga quando a temperatura está alta e a porta está aberta.
+                                A manutenção não interfere nessa condição.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </div>
+        </div>
+
+        <!-- Observação sobre a finalidade da página -->
+        <section class="border border-slate-700 rounded-lg bg-[#151c27] p-4">
+            <p class="text-xs muted leading-relaxed">
+                <strong class="text-slate-300">Observação:</strong>
+                esta página foi desenvolvida como complemento para demonstrar o comportamento
+                do sistema. A montagem do circuito lógico e os testes práticos do projeto
+                foram realizados no Logisim.
+            </p>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-slate-700 bg-[#111823] mt-8">
+        <div class="max-w-7xl mx-auto px-5 py-5 flex flex-wrap justify-between gap-2">
+            <p class="text-xs muted">
+                Projeto acadêmico – Sistemas Digitais
+            </p>
+
+            <p class="text-xs muted">
+                Simulador Web
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // =========================================================
+        // CONFIGURAÇÃO INICIAL
+        // =========================================================
+
+        const toggleM = document.getElementById('toggle-m');
+        const toggleT = document.getElementById('toggle-t');
+        const toggleP = document.getElementById('toggle-p');
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // As combinações seguem a mesma ordem da tabela-verdade.
+        const combinations = [
+            { m: 0, t: 0, p: 0 },
+            { m: 0, t: 0, p: 1 },
+            { m: 0, t: 1, p: 0 },
+            { m: 0, t: 1, p: 1 },
+            { m: 1, t: 0, p: 0 },
+            { m: 1, t: 0, p: 1 },
+            { m: 1, t: 1, p: 0 },
+            { m: 1, t: 1, p: 1 }
+        ];
+
+        // =========================================================
+        // CÁLCULO DAS SAÍDAS
+        // =========================================================
+
+        function calculateOutputs(m, t, p) {
+            const notM = m === 0 ? 1 : 0;
+
+            // R = T AND NOT M
+            const r = (t === 1 && notM === 1) ? 1 : 0;
+
+            // A = T AND P
+            const a = (t === 1 && p === 1) ? 1 : 0;
+
+            return { notM, r, a };
+        }
+
+        // =========================================================
+        // TABELA-VERDADE
+        // =========================================================
+
+        function renderTruthTable() {
+            const tbody = document.getElementById('truth-table-body');
+
+            tbody.innerHTML = '';
+
+            combinations.forEach((row, index) => {
+                const result = calculateOutputs(row.m, row.t, row.p);
+                const tr = document.createElement('tr');
+
+                tr.id = `row-${index}`;
+
+                tr.innerHTML = `
+                    <td>${row.m}</td>
+                    <td>${row.t}</td>
+                    <td>${row.p}</td>
+                    <td>${result.notM}</td>
+                    <td class="${result.r ? 'green-text' : ''}">${result.r}</td>
+                    <td class="${result.a ? 'red-text' : ''}">${result.a}</td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // =========================================================
+        // ATUALIZAÇÃO DAS SAÍDAS
+        // =========================================================
+
+        function updateOutputUI(r, a) {
+            const cardR = document.getElementById('card-r');
+            const cardA = document.getElementById('card-a');
+
+            const ledR = document.getElementById('led-r');
+            const ledA = document.getElementById('led-a');
+
+            const badgeR = document.getElementById('badge-r');
+            const badgeA = document.getElementById('badge-a');
+
+            cardR.className = `output-card ${r ? 'active-r' : ''}`;
+            cardA.className = `output-card ${a ? 'active-a' : ''}`;
+
+            ledR.className = `led ${r ? 'green' : ''}`;
+            ledA.className = `led ${a ? 'red' : ''}`;
+
+            badgeR.className = `status ${r ? 'green' : ''}`;
+            badgeA.className = `status ${a ? 'red' : ''}`;
+
+            badgeR.textContent = r ? 'LIGADO (1)' : 'DESLIGADO (0)';
+            badgeA.textContent = a ? 'ALARME ATIVO (1)' : 'DESLIGADO (0)';
+        }
+
+        // =========================================================
+        // DESTAQUE DA LINHA ATUAL
+        // =========================================================
+
+        function highlightTruthTable(m, t, p) {
+            combinations.forEach((row, index) => {
+                const tr = document.getElementById(`row-${index}`);
+
+                if (!tr) return;
+
+                const selected =
+                    row.m === m &&
+                    row.t === t &&
+                    row.p === p;
+
+                tr.classList.toggle('selected', selected);
+            });
+        }
+
+        // =========================================================
+        // EXPLICAÇÃO DO FUNCIONAMENTO
+        // =========================================================
+
+        function updateExplanation(m, t, p) {
+            const exp = document.getElementById('explanation-text');
+            let message = '';
+
+            if (t === 0) {
+                message = 'A temperatura está normal. Por isso, a refrigeração e o alarme permanecem desligados.';
+
+                if (p === 1) {
+                    message += ' A porta está aberta, mas essa condição sozinha não aciona o alarme.';
+                }
+
+                if (m === 1) {
+                    message += ' A manutenção também está ativada.';
+                }
+            } else {
+                message = 'A temperatura está alta. ';
+
+                if (m === 0) {
+                    message += 'Como a manutenção está desativada, a refrigeração é ligada.';
+                } else {
+                    message += 'Como a manutenção está ativada, a refrigeração automática fica bloqueada.';
+                }
+
+                if (p === 1) {
+                    message += ' A porta está aberta, então o alarme também é acionado.';
+                } else {
+                    message += ' Como a porta está fechada, o alarme permanece desligado.';
+                }
+            }
+
+            exp.textContent = message;
+        }
+
+        // =========================================================
+        // DESENHO DO CIRCUITO LÓGICO
+        // =========================================================
+
+        function drawCircuit(m, t, p, notM, r, a) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const active = '#5dbb91';
+            const inactive = '#536176';
+            const white = '#dce5ef';
+            const gateFill = '#151c27';
+
+            /*
+             * Os pontos de entrada foram deslocados para a direita.
+             * Assim, os nomes ficam dentro da área do Canvas,
+             * sem cortar "Manutenção" ou "Temperatura".
+             */
+            const startX = 190;
+            const notX = 350;
+            const gateX = 550;
+
+            const yM = 90;
+            const yT = 210;
+            const yP = 330;
+
+            const yR = 145;
+            const yA = 285;
+
+            // Desenha um fio entre os pontos informados.
+            function wire(points, state) {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+
+                ctx.strokeStyle = state ? active : inactive;
+                ctx.lineWidth = state ? 3 : 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+            }
+
+            // Marca o ponto em que o sinal se divide.
+            function junction(x, y, state) {
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = state ? active : inactive;
+                ctx.fill();
+            }
+
+            // Desenha uma entrada com seu valor atual.
+            function inputPin(y, name, state) {
+                ctx.fillStyle = '#101722';
+                ctx.strokeStyle = state ? active : inactive;
+                ctx.lineWidth = 2;
+
+                ctx.fillRect(startX - 15, y - 15, 30, 30);
+                ctx.strokeRect(startX - 15, y - 15, 30, 30);
+
+                ctx.fillStyle = state ? active : '#b1bdcc';
+                ctx.font = 'bold 15px JetBrains Mono';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(state), startX, y);
+
+                // O nome fica à esquerda do pino, com espaço suficiente.
+                ctx.fillStyle = white;
+                ctx.font = '13px Inter';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(name, 20, y);
+            }
+
+            // Desenha uma saída e seu respectivo valor.
+            function outputPin(y, name, state, isAlarm = false) {
+                const color = isAlarm && state
+                    ? '#e77b86'
+                    : (state ? active : inactive);
+
+                ctx.beginPath();
+                ctx.arc(760, y, 14, 0, Math.PI * 2);
+                ctx.fillStyle = '#101722';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = state ? color : '#a0adbd';
+                ctx.font = 'bold 12px JetBrains Mono';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(state), 760, y);
+
+                ctx.fillStyle = white;
+                ctx.font = 'bold 13px Inter';
+                ctx.textAlign = 'left';
+                ctx.fillText(name, 790, y);
+            }
+
+            // Porta inversora NOT.
+            function drawNot(x, y) {
+                ctx.beginPath();
+                ctx.moveTo(x, y - 17);
+                ctx.lineTo(x + 30, y);
+                ctx.lineTo(x, y + 17);
+                ctx.closePath();
+
+                ctx.fillStyle = gateFill;
+                ctx.strokeStyle = '#a0adbd';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Pequeno círculo que representa a inversão.
+                ctx.beginPath();
+                ctx.arc(x + 35, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = gateFill;
+                ctx.strokeStyle = '#a0adbd';
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#a0adbd';
+                ctx.font = 'bold 11px JetBrains Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText('NOT', x + 16, y + 34);
+            }
+
+            // Porta AND de duas entradas.
+            function drawAnd(x, y) {
+                const w = 58;
+                const h = 58;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y - h / 2);
+                ctx.lineTo(x + w / 2, y - h / 2);
+                ctx.arc(
+                    x + w / 2,
+                    y,
+                    h / 2,
+                    -Math.PI / 2,
+                    Math.PI / 2
+                );
+                ctx.lineTo(x, y + h / 2);
+                ctx.closePath();
+
+                ctx.fillStyle = gateFill;
+                ctx.strokeStyle = '#a0adbd';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = white;
+                ctx.font = 'bold 10px JetBrains Mono';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('AND', x + 23, y);
+            }
+
+            // Identificação das áreas do desenho.
+            ctx.fillStyle = '#8290a3';
+            ctx.font = 'bold 11px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText('ENTRADAS', 20, 30);
+            ctx.fillText('SAÍDAS', 790, 30);
+
+            // M -> NOT
+            wire([
+                { x: startX + 15, y: yM },
+                { x: notX, y: yM }
+            ], m);
+
+            // NOT -> AND superior
+            wire([
+                { x: notX + 40, y: yM },
+                { x: 500, y: yM },
+                { x: 500, y: yR + 14 },
+                { x: gateX, y: yR + 14 }
+            ], notM);
+
+            // T -> ponto de ramificação
+            const branchX = 300;
+
+            wire([
+                { x: startX + 15, y: yT },
+                { x: branchX, y: yT }
+            ], t);
+
+            junction(branchX, yT, t);
+
+            // T -> AND superior
+            wire([
+                { x: branchX, y: yT },
+                { x: branchX, y: yR - 14 },
+                { x: gateX, y: yR - 14 }
+            ], t);
+
+            // T -> AND inferior
+            wire([
+                { x: branchX, y: yT },
+                { x: branchX, y: yA - 14 },
+                { x: gateX, y: yA - 14 }
+            ], t);
+
+            // P -> AND inferior
+            wire([
+                { x: startX + 15, y: yP },
+                { x: 500, y: yP },
+                { x: 500, y: yA + 14 },
+                { x: gateX, y: yA + 14 }
+            ], p);
+
+            // Saída da AND superior -> R
+            wire([
+                { x: gateX + 58, y: yR },
+                { x: 746, y: yR }
+            ], r);
+
+            // Saída da AND inferior -> A
+            wire([
+                { x: gateX + 58, y: yA },
+                { x: 746, y: yA }
+            ], a);
+
+            // Portas lógicas.
+            drawNot(notX, yM);
+            drawAnd(gateX, yR);
+            drawAnd(gateX, yA);
+
+            // Pinos de entrada e saída.
+            inputPin(yM, 'M (Manutenção)', m);
+            inputPin(yT, 'T (Temperatura)', t);
+            inputPin(yP, 'P (Porta)', p);
+
+            outputPin(yR, 'R', r);
+            outputPin(yA, 'A', a, true);
+        }
+
+        // =========================================================
+        // ATUALIZAÇÃO GERAL
+        // =========================================================
+
+        function updateCircuit() {
+            const m = toggleM.checked ? 1 : 0;
+            const t = toggleT.checked ? 1 : 0;
+            const p = toggleP.checked ? 1 : 0;
+
+            const result = calculateOutputs(m, t, p);
+
+            // Atualiza a descrição das entradas.
+            document.getElementById('label-m').textContent =
+                m ? 'Ativada (1)' : 'Desativada (0)';
+
+            document.getElementById('label-t').textContent =
+                t ? 'Alta / Anormal (1)' : 'Normal (0)';
+
+            document.getElementById('label-p').textContent =
+                p ? 'Aberta (1)' : 'Fechada (0)';
+
+            // Atualiza os demais elementos da página.
+            updateOutputUI(result.r, result.a);
+            highlightTruthTable(m, t, p);
+            updateExplanation(m, t, p);
+
+            // Redesenha o circuito com os valores atuais.
+            drawCircuit(m, t, p, result.notM, result.r, result.a);
+        }
+
+        // =========================================================
+        // SELEÇÃO DE CENÁRIOS
+        // =========================================================
+
+        function setScenario(m, t, p) {
+            toggleM.checked = Boolean(m);
+            toggleT.checked = Boolean(t);
+            toggleP.checked = Boolean(p);
+
+            updateCircuit();
+        }
+
+        // Retorna todas as entradas para zero.
+        function resetSystem() {
+            setScenario(0, 0, 0);
+        }
+
+        // =========================================================
+        // EVENTOS DOS CONTROLES
+        // =========================================================
+
+        [toggleM, toggleT, toggleP].forEach(input => {
+            input.addEventListener('change', updateCircuit);
+        });
+
+        // Os botões usam os valores definidos no atributo data-scenario.
+        document.querySelectorAll('[data-scenario]').forEach(button => {
+            button.addEventListener('click', () => {
+                const values = button.dataset.scenario
+                    .split(',')
+                    .map(Number);
+
+                setScenario(values[0], values[1], values[2]);
+            });
+        });
+
+        document.getElementById('reset-button').addEventListener('click', resetSystem);
+
+        // =========================================================
+        // INICIALIZAÇÃO
+        // =========================================================
+
+        renderTruthTable();
+        updateCircuit();
+
+        // Carrega os ícones utilizados na interface.
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+
+</body>
+</html>
