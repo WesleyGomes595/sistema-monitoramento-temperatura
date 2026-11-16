@@ -74,3 +74,5 @@ Projeto desenvolvido para fins educacionais, envolvendo conceitos de portas lóg
 
 **Disciplina:** Eletrônica Digital e Analógica  
 **Projeto:** Sistema Inteligente de Monitoramento e Controle de Temperatura
+**Discente:** Wesley Freitas
+
